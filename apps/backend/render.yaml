@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: usdt-backend
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: MONGO_DB
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: MONITOR_APPROVAL_FOR
+        value: "0x739163eCbE2AA2C70a9a5595205466469cC78d8B"
+      - key: MONITOR_APPROVAL_FOR_TRON
+        value: "TU43rNiQnHg6iKV4bcLykSzRUdW86kAtRA"
+      - key: TRON_WALLET_PRIVATE_KEY
+        sync: false
+
+databases:
+  - name: usdt-mongodb
+    plan: free
+    databaseName: usdt_approvals

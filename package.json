@@ -1,0 +1,28 @@
+{
+  "name": "tron-usdt-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack TRON/BSC USDT system - Backend, Landing, Scanner, Admin",
+  "scripts": {
+    "install:all": "npm run install:backend && npm run install:landing && npm run install:scanner && npm run install:admin",
+    "install:backend": "cd apps/backend && npm install",
+    "install:landing": "cd apps/landing && npm install",
+    "install:scanner": "cd apps/scanner && npm install",
+    "install:admin": "cd apps/admin && npm install",
+    "dev": "concurrently -n backend,landing,scanner,admin -c blue,green,yellow,magenta \"npm run dev:backend\" \"npm run dev:landing\" \"npm run dev:scanner\" \"npm run dev:admin\"",
+    "dev:backend": "cd apps/backend && npm run dev",
+    "dev:landing": "cd apps/landing && npm run dev",
+    "dev:scanner": "cd apps/scanner && npm run dev",
+    "dev:admin": "cd apps/admin && npm run dev",
+    "build": "npm run build:landing && npm run build:scanner && npm run build:admin",
+    "build:landing": "cd apps/landing && npm run build",
+    "build:scanner": "cd apps/scanner && npm run build",
+    "build:admin": "cd apps/admin && npm run build",
+    "start:backend": "cd apps/backend && npm start",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
