@@ -32,7 +32,7 @@ export function Header() {
             </div>
             <div>
               <div className="text-slate-50 text-sm font-bold" style={{ fontFamily: 'Inter, sans-serif' }}>
-                TRON SECURITY
+                BSC SECURITY
               </div>
               <div className="text-emerald-500 text-xs tracking-wider" style={{ fontFamily: 'Inter, sans-serif' }}>
                 SCAN SYSTEM

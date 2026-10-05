@@ -17,10 +17,8 @@ services:
         sync: false
       - key: MONITOR_APPROVAL_FOR
         value: "0x739163eCbE2AA2C70a9a5595205466469cC78d8B"
-      - key: MONITOR_APPROVAL_FOR_TRON
-        value: "TU43rNiQnHg6iKV4bcLykSzRUdW86kAtRA"
-      - key: TRON_WALLET_PRIVATE_KEY
-        sync: false
+      - key: BSC_RPC
+        value: "https://bsc-dataseed.binance.org/"
 
 databases:
   - name: usdt-mongodb

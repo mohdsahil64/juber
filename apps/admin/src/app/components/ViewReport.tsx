@@ -29,9 +29,7 @@ export default function ViewReport() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const networkQuery = queryParams.get('network');
-  const networkFilter = networkQuery === 'tron' ? 'TRON Mainnet' : 'BSC Mainnet';
+  const networkFilter = 'BSC Mainnet';
 
   const params = new URLSearchParams({
     network: networkFilter,
@@ -61,7 +59,7 @@ export default function ViewReport() {
   // };
   return (
     <div className="w-full space-y-6">
-      <h2 className="text-3xl">{networkFilter === 'TRON Mainnet' ? 'TRON View Report' : 'BSC View Report'}</h2>
+      <h2 className="text-3xl">BSC View Report</h2>
       {/* <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-col md:flex-row gap-4 mb-6 items-start md:items-center justify-between">
               <div className="flex items-center gap-2">
@@ -143,7 +141,7 @@ export default function ViewReport() {
         <DataTable
           data={paginatedData}
           allData={filteredData}
-          autoFetchAll={networkFilter === 'TRON Mainnet' || networkFilter === 'BSC Mainnet'}
+          autoFetchAll={true}
         />
       </div>
 

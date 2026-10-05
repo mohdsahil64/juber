@@ -17,7 +17,7 @@ import type { ScanResults } from "./components/ScannerUI";
 
 declare global {
   interface Window {
-    tronWeb?: any;
+    ethereum?: any;
   }
 }
 
@@ -31,41 +31,16 @@ export default function App() {
 
   // Check if wallet is already connected on mount
   useEffect(() => {
-    checkWalletConnection();
-  }, []);
-
-  const checkWalletConnection = async () => {
-    if (window.tronWeb && window.tronWeb.ready) {
-      try {
-        const address = window.tronWeb.defaultAddress.base58;
-        if (address) {
-          setWalletAddress(address);
+    // Check if MetaMask/Trust Wallet already connected
+    if (window.ethereum) {
+      window.ethereum.request({ method: "eth_accounts" }).then((accounts: string[]) => {
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
           setIsConnected(true);
-          await fetchBalance(address);
         }
-      } catch (error) {
-        console.error("Error checking wallet connection:", error);
-      }
+      }).catch(console.error);
     }
-  };
-
-  const fetchBalance = async (address: string) => {
-    try {
-      if (window.tronWeb && window.tronWeb.ready) {
-        // Get TRX balance
-        const trxBalance = await window.tronWeb.trx.getBalance(address);
-        const trxInSun = window.tronWeb.fromSun(trxBalance);
-
-        // For demo purposes, we'll show a mock USDT balance
-        const mockUsdtBalance = (Math.random() * 10000).toFixed(2);
-        setBalance(mockUsdtBalance);
-      }
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      // Set mock balance on error
-      setBalance((Math.random() * 10000).toFixed(2));
-    }
-  };
+  }, []);
 
   const handleInitiateScan = () => {
     setShowWalletConnect(true);
@@ -90,66 +65,22 @@ export default function App() {
 
   const handleConnect = async () => {
     try {
-      // Check if TronLink is installed
-      if (!window.tronWeb) {
-        alert(
-          "TronLink wallet not detected. Please install TronLink extension.",
-        );
+      if (!window.ethereum) {
+        alert("MetaMask not detected. Please install MetaMask or use Trust Wallet.");
         return;
       }
-
-      // Request account access
-      if (window.tronWeb.ready) {
-        const address = window.tronWeb.defaultAddress.base58;
-        setWalletAddress(address);
+      const accounts: string[] = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (accounts && accounts.length > 0) {
+        setWalletAddress(accounts[0]);
         setIsConnected(true);
-        await fetchBalance(address);
-
-        // Start scanning after connection
+        setBalance((Math.random() * 10000).toFixed(2));
         setTimeout(() => {
           setIsScanning(true);
-          window.scrollTo({
-            top: window.innerHeight * 1.5,
-            behavior: "smooth",
-          });
+          window.scrollTo({ top: window.innerHeight * 1.5, behavior: "smooth" });
         }, 1500);
-      } else {
-        // TronLink is installed but not ready, request connection
-        const res = await window.tronWeb.request({
-          method: "tron_requestAccounts",
-        });
-        if (res.code === 200) {
-          const address = window.tronWeb.defaultAddress.base58;
-          setWalletAddress(address);
-          setIsConnected(true);
-          await fetchBalance(address);
-
-          setTimeout(() => {
-            setIsScanning(true);
-            window.scrollTo({
-              top: window.innerHeight * 1.5,
-              behavior: "smooth",
-            });
-          }, 1500);
-        }
       }
     } catch (error) {
       console.error("Error connecting wallet:", error);
-
-      // For demo purposes, simulate connection with mock data
-      const mockAddress =
-        "TX9Kqb" + Math.random().toString(36).substring(2, 15).toUpperCase();
-      setWalletAddress(mockAddress);
-      setIsConnected(true);
-      setBalance((Math.random() * 10000).toFixed(2));
-
-      setTimeout(() => {
-        setIsScanning(true);
-        window.scrollTo({
-          top: window.innerHeight * 1.5,
-          behavior: "smooth",
-        });
-      }, 1500);
     }
   };
 

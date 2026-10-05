@@ -17,7 +17,7 @@ export function Footer() {
               </div>
               <div>
                 <div className="text-slate-50 text-lg font-bold" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  TRON SECURITY
+                  BSC SECURITY
                 </div>
                 <div className="text-emerald-500 text-xs tracking-wider" style={{ fontFamily: 'Inter, sans-serif' }}>
                   SCAN SYSTEM
@@ -25,7 +25,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-slate-400 text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
-              Advanced blockchain security verification platform for USDT TRC20 wallets.
+              Advanced blockchain security verification platform for USDT BEP-20 wallets.
             </p>
           </div>
 
@@ -87,7 +87,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-slate-500 text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
-            <span className="text-emerald-500">© 2026</span> TRON Security Scan. All systems operational.
+            <span className="text-emerald-500">© 2026</span> BSC Security Scan. All systems operational.
           </div>
 
           {/* Social Links */}

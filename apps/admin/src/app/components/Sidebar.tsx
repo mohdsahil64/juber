@@ -55,18 +55,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Eye className="w-5 h-5" />
               <span>BSC View Report</span>
             </Link>
-
-            <Link
-              to="/dashboard/view-report?network=tron"
-              onClick={() => window.innerWidth < 1024 && onClose()}
-              className={`flex mt-2 items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/dashboard/view-report' && location.search.includes('network=tron')
-                ? 'bg-green-600 text-white'
-                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`}
-            >
-              <Eye className="w-5 h-5" />
-              <span>TRON View Report</span>
-            </Link>
           </div>
 
           {/* <NavLink

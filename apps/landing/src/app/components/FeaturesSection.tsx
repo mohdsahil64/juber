@@ -6,12 +6,12 @@ export function FeaturesSection() {
     {
       icon: Radar,
       title: 'THREAT DETECTION ENGINE',
-      description: 'Real-time monitoring and detection of potential security threats on the TRON blockchain',
+      description: 'Real-time monitoring and detection of potential security threats on the BSC blockchain',
       status: 'ACTIVE'
     },
     {
       icon: Database,
-      title: 'TRON CHAIN ANALYZER',
+      title: 'BSC CHAIN ANALYZER',
       description: 'Deep blockchain analysis examining transaction patterns and wallet behavior',
       status: 'ACTIVE'
     },

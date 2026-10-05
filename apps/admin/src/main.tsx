@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { bsc, tron } from "@reown/appkit/networks"; // BSC Mainnet
+import { bsc } from "@reown/appkit/networks"; // BSC Mainnet only
 import { createAppKit } from "@reown/appkit/react";
 import App from "./app/App.tsx";
 import "./styles/index.css";
@@ -10,7 +10,7 @@ import "./styles/index.css";
 const projectId = "0ce8aee287b84db4976604d12ad15af9";
 
 // 'as const' lagane se TypeScript ko pata chalta hai ki ye array empty nahi hai
-const networks = [bsc, tron] as const;
+const networks = [bsc] as const;
 
 const wagmiAdapter = new WagmiAdapter({
   projectId,

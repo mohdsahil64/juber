@@ -24,7 +24,7 @@ export function ScannerUI({ isScanning, onScanComplete }: ScannerUIProps) {
 
   const scanLogs = [
     'Initializing security protocols...',
-    'Connecting to TRON blockchain...',
+    'Connecting to BSC blockchain...',
     'Scanning transaction history...',
     'Analyzing smart contract interactions...',
     'Checking token approvals...',
@@ -97,7 +97,7 @@ export function ScannerUI({ isScanning, onScanComplete }: ScannerUIProps) {
               <div className="flex items-center gap-3">
                 <Activity className="w-5 h-5 text-emerald-500" />
                 <span className="text-emerald-500 text-lg tracking-widest font-bold" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  SECURITY SCAN PANEL
+                  BSC USDT SCAN PANEL
                 </span>
               </div>
               <motion.div

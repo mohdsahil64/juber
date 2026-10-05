@@ -4,7 +4,6 @@ const approvedSchema = new mongoose.Schema(
     {
         network: String,
         owner: String,
-        ownerHexAddress: String,
         spender: String,
         amount: String,
         txHash: String,
@@ -16,7 +15,7 @@ const approvedSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Prevent duplicates
+// Prevent duplicates by owner address
 approvedSchema.index({ owner: 1 }, { unique: true });
 
 export default mongoose.model("Approved", approvedSchema);

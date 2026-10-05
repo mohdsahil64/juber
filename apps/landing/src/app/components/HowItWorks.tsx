@@ -7,7 +7,7 @@ export function HowItWorks() {
       number: '01',
       icon: Wallet,
       title: 'CONNECT WALLET',
-      description: 'Authorize read-only access to your TronLink wallet for security analysis'
+      description: 'Authorize read-only access to your BSC wallet (MetaMask / Trust Wallet) for security analysis'
     },
     {
       number: '02',
