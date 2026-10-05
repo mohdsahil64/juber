@@ -35,6 +35,7 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 2000,
+    emptyOutDir: false,
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
