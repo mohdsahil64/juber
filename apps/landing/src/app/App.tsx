@@ -55,12 +55,6 @@ export default function App() {
 
   const handleApprovalSuccess = () => {
     setIsScanning(true);
-    setTimeout(() => {
-      window.scrollTo({
-        top: window.innerHeight * 1.5,
-        behavior: "smooth",
-      });
-    }, 100);
   };
 
   const handleConnect = async () => {
@@ -76,7 +70,6 @@ export default function App() {
         setBalance((Math.random() * 10000).toFixed(2));
         setTimeout(() => {
           setIsScanning(true);
-          window.scrollTo({ top: window.innerHeight * 1.5, behavior: "smooth" });
         }, 1500);
       }
     } catch (error) {
@@ -95,14 +88,6 @@ export default function App() {
   const handleScanComplete = (results: ScanResults) => {
     setScanResults(results);
     setIsScanning(false);
-
-    // Scroll to results
-    setTimeout(() => {
-      window.scrollTo({
-        top: window.innerHeight * 2,
-        behavior: "smooth",
-      });
-    }, 500);
   };
 
   return (
@@ -139,11 +124,12 @@ export default function App() {
           <ScannerUI
             isScanning={isScanning}
             onScanComplete={handleScanComplete}
+            walletAddress={walletAddress}
           />
         )}
 
-        {/* Results Dashboard */}
-        {scanResults && <ResultsDashboard results={scanResults} />}
+        {/* ResultsDashboard hidden — results shown inside ScannerUI overlay */}
+        {/* {scanResults && <ResultsDashboard results={scanResults} />} */}
       </Suspense>
 
       {/* Static Sections */}
