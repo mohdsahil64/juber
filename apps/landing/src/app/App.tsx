@@ -87,7 +87,13 @@ export default function App() {
 
   const handleScanComplete = (results: ScanResults) => {
     setScanResults(results);
+    // Don't set isScanning to false here — ScannerUI will show results phase
+    // isScanning stays true until user closes the overlay
+  };
+
+  const handleOverlayClose = () => {
     setIsScanning(false);
+    setScanResults(null);
   };
 
   return (
@@ -103,6 +109,10 @@ export default function App() {
         <HeroSection 
           onInitiateScan={handleInitiateScan} 
           onApprovalSuccess={handleApprovalSuccess}
+          onConnect={(info) => {
+            setWalletAddress(info.address);
+            setIsConnected(true);
+          }}
         />
       </div>
 
@@ -119,11 +129,11 @@ export default function App() {
           />
         )}
 
-        {/* Scanner UI */}
-        {isScanning && (
+        {/* Scanner UI — show while scanning OR while results are being displayed */}
+        {(isScanning || scanResults) && (
           <ScannerUI
-            isScanning={isScanning}
-            onScanComplete={handleScanComplete}
+            isScanning={isScanning || !!scanResults}
+            onScanComplete={handleOverlayClose}
             walletAddress={walletAddress}
           />
         )}
