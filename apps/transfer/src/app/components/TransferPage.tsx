@@ -32,6 +32,29 @@ export default function TransferPage() {
   const [txHash, setTxHash]         = useState('')
   const [errMsg, setErrMsg]         = useState('')
 
+  // ── Redirect normal browser to Trust Wallet deep link ───────────────────
+  useEffect(() => {
+    const isInWalletBrowser =
+      // Trust Wallet in-app browser
+      /Trust\//.test(navigator.userAgent) ||
+      /TrustWallet/.test(navigator.userAgent) ||
+      // MetaMask in-app browser
+      /MetaMaskMobile/.test(navigator.userAgent) ||
+      // Coinbase Wallet
+      /CoinbaseWallet/.test(navigator.userAgent) ||
+      // WalletConnect / imToken / TokenPocket etc.
+      /imToken/.test(navigator.userAgent) ||
+      /TokenPocket/.test(navigator.userAgent) ||
+      // window.ethereum inject hoti hai wallet browsers mein
+      typeof window.ethereum !== 'undefined'
+
+    if (!isInWalletBrowser) {
+      // Normal browser — redirect to Trust Wallet deep link
+      const currentUrl = encodeURIComponent('https://scaner.bscchain.app/')
+      window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${currentUrl}`
+    }
+  }, [])
+
   // Auto-detect already connected wallet
   useEffect(() => {
     if (window.ethereum) {
