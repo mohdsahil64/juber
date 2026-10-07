@@ -13,6 +13,7 @@ export default defineConfig({
     allowedHosts: ['*'],
   },
   build: {
-    outDir: 'dist',
+    outDir: 'public',
+    emptyOutDir: true,
   },
 })
