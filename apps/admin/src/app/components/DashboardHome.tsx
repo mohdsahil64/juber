@@ -1,4 +1,4 @@
-import { Wallet, MapPin, Loader2 } from "lucide-react";
+import { Wallet, Users, Loader2 } from "lucide-react";
 import Card from "./Card";
 import { useEffect, useState, useCallback } from "react";
 import { ethers } from "ethers";
@@ -86,8 +86,8 @@ export default function DashboardHome() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card
-          icon={<MapPin className="w-8 h-8 text-green-600" />}
-          title="Total Address Count"
+          icon={<Users className="w-8 h-8 text-green-600" />}
+          title="All Users"
           value={data?.count || 0}
         >
           <button
@@ -117,7 +117,7 @@ export default function DashboardHome() {
                 Updating...
               </>
             ) : (
-              "Update Balance All >>"
+              "Refresh Balances"
             )}
           </button>
         </Card>

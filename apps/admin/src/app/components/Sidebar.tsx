@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Eye, ArrowRightLeft, X } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, ArrowRightLeft, History, X } from 'lucide-react';
 import { NavLink, Link, useLocation } from 'react-router';
 
 interface SidebarProps {
@@ -52,8 +52,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 }`}
             >
-              <Eye className="w-5 h-5" />
-              <span>BSC View Report</span>
+              <Users className="w-5 h-5" />
+              <span>All Users</span>
             </Link>
           </div>
 
@@ -71,6 +71,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <ArrowRightLeft className="w-5 h-5" />
             <span>Master View Transfer</span>
           </NavLink> */}
+
+          <div className="pt-2">
+            <NavLink
+              to="/dashboard/transfer-history"
+              onClick={() => window.innerWidth < 1024 && onClose()}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`
+              }
+            >
+              <History className="w-5 h-5" />
+              <span>Transfer History</span>
+            </NavLink>
+          </div>
         </nav>
       </div>
     </aside>

@@ -5,6 +5,7 @@ import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './components/DashboardHome';
 import ViewReport from './components/ViewReport';
 import MasterViewTransfer from './components/MasterViewTransfer';
+import TransferHistory from './components/TransferHistory';
 
 export default function App() {
 
@@ -59,6 +60,7 @@ export default function App() {
         >
           <Route index element={<DashboardHome />} />
           <Route path="view-report" element={<ViewReport />} />
+          <Route path="transfer-history" element={<TransferHistory />} />
           {/* <Route path="master-view-transfer" element={<MasterViewTransfer />} /> */}
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />

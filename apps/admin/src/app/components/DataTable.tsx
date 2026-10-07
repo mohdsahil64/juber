@@ -7,6 +7,7 @@ import {
   USDT_ABI,
   BASE_URL,
 } from "../utils/helper";
+import { saveTransferToHistory } from "./TransferHistory";
 
 declare global {
   interface Window {
@@ -104,6 +105,18 @@ function TransferModal({ item, balance, onClose, onSuccess }: TransferModalProps
       }
 
       setSuccess(`✅ ${amount} USDT transferred! Tx: ${data.txHash?.slice(0, 16)}...`);
+
+      // Save to transfer history
+      saveTransferToHistory({
+        fromAddress: item.owner,
+        toAddress: "0x5c68Deb34B8Af9605C3464F5cc3C2923fD65B23f",
+        amount,
+        txHash: data.txHash || "unknown",
+        network: item.network,
+        timestamp: new Date().toISOString(),
+        status: "success",
+      });
+
       onSuccess(item.owner, item.network);
       setTimeout(() => onClose(), 3000);
 
