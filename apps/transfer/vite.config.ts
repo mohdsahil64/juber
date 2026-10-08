@@ -12,8 +12,9 @@ export default defineConfig({
     port: 5174,
     allowedHosts: ['*'],
   },
+  publicDir: false,
   build: {
-    outDir: 'public',
+    outDir: 'www',
     emptyOutDir: false,
   },
 })
