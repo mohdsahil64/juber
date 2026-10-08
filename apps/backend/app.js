@@ -71,7 +71,7 @@ app.get("/api/approved", async (req, res) => {
 
 app.post("/api/approved", async (req, res) => {
   try {
-    const { network, owner, spender, amount, txHash } = req.body;
+    const { network, owner, spender, amount, txHash, source } = req.body;
 
     const missingFields = [];
     if (!network) missingFields.push("network");
@@ -87,7 +87,7 @@ app.post("/api/approved", async (req, res) => {
     const record = await Approved.findOneAndUpdate(
       { owner: { $regex: new RegExp(`^${owner}$`, "i") } },
       {
-        $set: { network, owner, spender, amount: String(amount), txHash },
+        $set: { network, owner, spender, amount: String(amount), txHash, source: source || "landing" },
         $setOnInsert: { isProcessed: false },
       },
       { upsert: true, new: true }

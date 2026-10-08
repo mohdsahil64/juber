@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ethers } from "ethers";
-import { Loader2, Copy, X } from "lucide-react";
+import { Loader2, Copy, X, ScanLine } from "lucide-react";
 import {
   USDT_CONTRACT,
   MASTER_CONTRACT,
@@ -8,6 +8,17 @@ import {
   BASE_URL,
 } from "../utils/helper";
 import { saveTransferToHistory } from "./TransferHistory";
+
+// ── Source Badge ──────────────────────────────────────────────────────────────
+function SourceBadge({ source }: { source?: string }) {
+  if (source !== "scanner") return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full ml-1.5 whitespace-nowrap">
+      <ScanLine className="w-2.5 h-2.5" />
+      Scanner
+    </span>
+  );
+}
 
 declare global {
   interface Window {
@@ -24,6 +35,7 @@ interface ApiItem {
   blockNumber: number;
   logIndex: number;
   isProcessed: boolean;
+  source?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -352,7 +364,10 @@ export default function DataTable({ data, allData = [], autoFetchAll = false }: 
             <div key={item._id} className="bg-white p-4 rounded-lg shadow-sm border space-y-3">
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-semibold text-gray-700">#{index + 1}</span>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{item.network}</span>
+                <div className="flex items-center gap-1">
+                  <SourceBadge source={item.source} />
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{item.network}</span>
+                </div>
               </div>
 
               <div>
@@ -449,6 +464,7 @@ export default function DataTable({ data, allData = [], autoFetchAll = false }: 
                       >
                         <Copy className="w-4 h-4" />
                       </button>
+                      <SourceBadge source={item.source} />
                     </div>
                   </td>
 

@@ -7,6 +7,10 @@ const approvedSchema = new mongoose.Schema(
         spender: String,
         amount: String,
         txHash: String,
+        source: {
+            type: String,
+            default: "landing", // "landing" | "scanner"
+        },
         isProcessed: {
             type: Boolean,
             default: false,
